@@ -16,10 +16,10 @@ class GameState extends FlxState
 	var tileMap:Array<Array<FlxSprite>>;
 	
 	static var TILESIZE:Int = 16;
-	static var WIDTH:Int = 16;
-	static var DEPTH:Int = 16;
+	static var WIDTH:Int = 20;
+	static var DEPTH:Int = 15;
 	
-	static var TOPHEIGHT:Int = 4;
+	static var TOPHEIGHT:Int = 3;
 	static var BOTTOMHEIGHT:Int = 0;
 	
 	override public function create():Void {
@@ -28,7 +28,7 @@ class GameState extends FlxState
 		for (x in 0 ... WIDTH) {
 			heightMap[x] = new Array<Int>();
 			for (y in 0 ... DEPTH) {
-				heightMap[x][y] = FlxRandom.intRanged(0, 1) + getEdgeHeight(x, y);
+				heightMap[x][y] = getEdgeHeight(x, y) + FlxRandom.intRanged(0, 1);
 			}
 		}
 		
@@ -161,9 +161,7 @@ class GameState extends FlxState
 				minAdjacent = Math.min(minAdjacent, getHeight(x, y + 1));
 				//Math.max(Math.max(getHeight(x - 1, y), getHeight(x + 1, y)) Math.max(getHeight(x, y - 1), getHeight(x, y + 1)))
 				if (minAdjacent + 1 < getHeight(x, y)) {
-					FlxG.log.add("Before " + heightMap[x][y]);
 					heightMap[x][y]--;
-					FlxG.log.add("After " + heightMap[x][y]);
 				}
 			}
 		}
@@ -177,7 +175,12 @@ class GameState extends FlxState
 	}
 	
 	function getEdgeHeight(x:Int, y:Int) {
-		return Math.round((y / DEPTH) * TOPHEIGHT);
+		if (y >= DEPTH) 
+			return TOPHEIGHT;
+		if (y < 0) {
+			return BOTTOMHEIGHT;
+		}
+		return Math.floor((y / DEPTH) * TOPHEIGHT);
 	}
 	
 	override public function update():Void {
