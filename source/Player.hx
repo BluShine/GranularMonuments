@@ -8,24 +8,11 @@ import flixel.FlxG;
  * @author Mark
  */
  
-class Player extends FlxSprite
+class Player extends TileSprite
 {
-	static var TILESIZE:Int = 32;
-	
-	public var xTile:Int = 0;
-	public var yTile:Int = 0;
-	
-	var gameState:GameState;
-	
-	static var moveDuration:Float = .05;
-	var moveTimer:Float = 0;
-	var movingDir:Int = 0;
 	
 	public override function new(tX:Int, tY:Int, game:GameState) {
-		super(tX * TILESIZE, tY * TILESIZE);
-		gameState = game;
-		xTile = tX;
-		yTile = tY;
+		super(tX, tY, game);
 		loadGraphic("assets/shovel.png", true, 32, 32);
 		animation.add("hover", [0, 1], 6, true);
 		animation.add("move", [2], 1, true);
@@ -67,31 +54,9 @@ class Player extends FlxSprite
 		
 		if (moveTimer > 0) {
 			animation.play("move");
-			moveTimer -= FlxG.elapsed;
-			moveTimer = Math.max(0, moveTimer);
-			switch(movingDir) {
-				case 0:
-					x = xTile * TILESIZE;
-					y = yTile * TILESIZE + TILESIZE * (moveTimer / moveDuration);
-					false;
-				case 2:
-					x = xTile * TILESIZE;
-					y = yTile * TILESIZE - TILESIZE * (moveTimer / moveDuration);
-					false;
-				case 3:
-					x = xTile * TILESIZE + TILESIZE * (moveTimer / moveDuration);
-					y = yTile * TILESIZE;
-					false;
-				case 1:
-					x = xTile * TILESIZE - TILESIZE * (moveTimer / moveDuration);
-					y = yTile * TILESIZE;
-					false;
-			}
 		} 
 		else {
 			animation.play("hover");
-			x = xTile * TILESIZE;
-			y = yTile * TILESIZE;
 		}
 		super.update();
 	}

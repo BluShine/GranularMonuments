@@ -2,6 +2,7 @@ package ;
 
 import flixel.FlxState;
 import flixel.FlxSprite;
+import flixel.group.FlxTypedGroup;
 import flixel.util.FlxRandom;
 import flixel.tile.FlxTilemap;
 import flixel.FlxG;
@@ -20,9 +21,11 @@ class GameState extends FlxState
 	public static var DEPTH:Int = 15;
 	
 	static var TOPHEIGHT:Int = 3;
-	static var BOTTOMHEIGHT:Int = 0;
+	static var BOTTOMHEIGHT:Int = -1;
 	
 	var player:Player;
+	
+	var waveGroup:FlxTypedGroup<Wave>;
 	
 	override public function create():Void {
 		
@@ -50,6 +53,9 @@ class GameState extends FlxState
 		erode();
 		buildTileMap();
 		
+		waveGroup = new FlxTypedGroup<Wave>();
+		add(waveGroup);
+		
 		player = new Player(10, 7, this);
 		add(player);
 		
@@ -60,8 +66,8 @@ class GameState extends FlxState
 		if (x < 0 || x >= WIDTH || y < 0 || y >= DEPTH)
 			return;
 		heightMap[x][y] += amount;
-		heightMap[x][y] = cast(Math.min(heightMap[x][y], 3), Int);
-		heightMap[x][y] = cast(Math.max(heightMap[x][y], 0), Int);
+		heightMap[x][y] = cast(Math.min(heightMap[x][y], TOPHEIGHT), Int);
+		heightMap[x][y] = cast(Math.max(heightMap[x][y], BOTTOMHEIGHT), Int);
 		if (manual) {
 			erode();
 			buildTileMap();
@@ -158,6 +164,13 @@ class GameState extends FlxState
 				tileConversion[x * 2 + 1][y * 2] += tileHeight * 18;
 				tileConversion[x * 2][y * 2 + 1] += tileHeight * 18;
 				tileConversion[x * 2 + 1][y * 2 + 1] += tileHeight * 18;
+				
+				if (tileHeight == -1) {
+					tileConversion[x * 2][y * 2] = 17;
+					tileConversion[x * 2 + 1][y * 2] = 17;
+					tileConversion[x * 2][y * 2 + 1] = 17;
+					tileConversion[x * 2 + 1][y * 2 + 1] = 17;
+				}
 			}
 		}
 		for (x in 0 ... WIDTH * 2) {
@@ -231,9 +244,23 @@ class GameState extends FlxState
 		return Math.floor((y / DEPTH) * TOPHEIGHT);
 	}
 	
+	public function moveWave(wave:Wave)
+	{
+		wave.move(wave.xTile, wave.yTile + 1, 2);
+		if (getHeight(wave.xTile, wave.yTile) > getHeight(wave.xTile, wave.yTile - 1)){
+			wave.hit();
+			digTile(wave.xTile, wave.yTile, -1, true);
+		}
+	}
+	
 	override public function update():Void {
 		if (FlxG.keys.anyJustPressed(["ENTER", "ESCAPE"])) {
 			FlxG.switchState(new GameState());
+		}
+		
+		if (FlxRandom.chanceRoll(10)) {
+			var w:Wave = new Wave(FlxRandom.intRanged(0, WIDTH - 1), -1, this);
+			waveGroup.add(w);
 		}
 		
 		super.update();
