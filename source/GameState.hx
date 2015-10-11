@@ -3,9 +3,11 @@ package ;
 import flixel.FlxState;
 import flixel.FlxSprite;
 import flixel.group.FlxTypedGroup;
+import flixel.text.FlxText;
 import flixel.util.FlxRandom;
 import flixel.tile.FlxTilemap;
 import flixel.FlxG;
+import openfl.display.Tile;
 
 /**
  * ...
@@ -17,17 +19,24 @@ class GameState extends FlxState
 	var tileMap:Array<Array<FlxSprite>>;
 	
 	public static var TILESIZE:Int = 16;
-	public static var WIDTH:Int = 20;
-	public static var DEPTH:Int = 15;
+	public static var WIDTH:Int = 15;
+	public static var DEPTH:Int = 11;
 	
 	static var TOPHEIGHT:Int = 3;
 	static var BOTTOMHEIGHT:Int = -1;
+	
+	var castleGroup:FlxTypedGroup<TileSprite>;
 	
 	var player:Player;
 	
 	var waveGroup:FlxTypedGroup<Wave>;
 	
+	var score:Int = 0;
+	var scoreText:FlxText;
+	
 	override public function create():Void {
+		
+		castleGroup = new FlxTypedGroup<TileSprite>();
 		
 		heightMap = new Array<Array<Int>>();
 		for (x in 0 ... WIDTH) {
@@ -56,8 +65,14 @@ class GameState extends FlxState
 		waveGroup = new FlxTypedGroup<Wave>();
 		add(waveGroup);
 		
+		add(castleGroup);
+		
 		player = new Player(10, 7, this);
 		add(player);
+		
+		scoreText = new FlxText(3, 3, 0, "SCORE: 0", 16);
+		scoreText.color = 0xfc6b6b;
+		add(scoreText);
 		
 		super.create();
 	}
@@ -68,6 +83,9 @@ class GameState extends FlxState
 		heightMap[x][y] += amount;
 		heightMap[x][y] = cast(Math.min(heightMap[x][y], TOPHEIGHT), Int);
 		heightMap[x][y] = cast(Math.max(heightMap[x][y], BOTTOMHEIGHT), Int);
+		
+		destroyCastle(x, y);
+		
 		if (manual) {
 			erode();
 			buildTileMap();
@@ -251,6 +269,33 @@ class GameState extends FlxState
 			wave.hit();
 			digTile(wave.xTile, wave.yTile, -1, true);
 		}
+		
+		destroyCastle(wave.xTile, wave.yTile);
+	}
+	
+	public function buildCastle(x:Int, y:Int) {
+		var existingCastle:Bool = false;
+		for (c in castleGroup) {
+			if (c.alive && c.xTile == x && c.yTile == y) {
+				existingCastle = true;
+			}
+		}
+		
+		if (!existingCastle) {
+			var castle:TileSprite = new TileSprite(x, y, this);
+			castleGroup.add(castle);
+			castle.alive = true;
+			castle.loadGraphic("assets/castle.png", false, 32, 32);
+			castle.offset.y = 8;
+		}
+	}
+	
+	public function destroyCastle(x:Int, y:Int) {
+		for (c in castleGroup) {
+			if (c.alive && c.xTile == x && c.yTile == y) {
+				c.kill();
+			}
+		}
 	}
 	
 	override public function update():Void {
@@ -258,10 +303,17 @@ class GameState extends FlxState
 			FlxG.switchState(new GameState());
 		}
 		
-		if (FlxRandom.chanceRoll(10)) {
+		if (FlxRandom.chanceRoll(3)) {
 			var w:Wave = new Wave(FlxRandom.intRanged(0, WIDTH - 1), -1, this);
 			waveGroup.add(w);
 		}
+		
+		for (c in castleGroup) {
+			if (c.alive) {
+				score++;
+			}
+		}
+		scoreText.text = "SCORE: " + score;
 		
 		super.update();
 	}
