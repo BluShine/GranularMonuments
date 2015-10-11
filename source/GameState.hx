@@ -15,12 +15,14 @@ class GameState extends FlxState
 	var heightMap:Array<Array<Int>>;
 	var tileMap:Array<Array<FlxSprite>>;
 	
-	static var TILESIZE:Int = 16;
-	static var WIDTH:Int = 20;
-	static var DEPTH:Int = 15;
+	public static var TILESIZE:Int = 16;
+	public static var WIDTH:Int = 20;
+	public static var DEPTH:Int = 15;
 	
 	static var TOPHEIGHT:Int = 3;
 	static var BOTTOMHEIGHT:Int = 0;
+	
+	var player:Player;
 	
 	override public function create():Void {
 		
@@ -46,11 +48,24 @@ class GameState extends FlxState
 			}
 		}
 		erode();
-		erode();
-		erode();
 		buildTileMap();
 		
+		player = new Player(10, 7, this);
+		add(player);
+		
 		super.create();
+	}
+	
+	public function digTile(x:Int, y:Int, amount:Int, manual:Bool) {
+		if (x < 0 || x >= WIDTH || y < 0 || y >= DEPTH)
+			return;
+		heightMap[x][y] += amount;
+		heightMap[x][y] = cast(Math.min(heightMap[x][y], 3), Int);
+		heightMap[x][y] = cast(Math.max(heightMap[x][y], 0), Int);
+		if (manual) {
+			erode();
+			buildTileMap();
+		}
 	}
 	
 	function buildTileMap() {
@@ -153,18 +168,51 @@ class GameState extends FlxState
 	}
 	
 	function erode() {
+		var eroded:Bool = false;
 		for (x in 0 ... WIDTH) {
 			Math.max(0.1, 0.2);
 			for (y in 0 ... DEPTH) {
-				var minAdjacent = Math.min(getHeight(x - 1, y), getHeight(x + 1, y));
-				minAdjacent = Math.min(minAdjacent, getHeight(x, y - 1));
-				minAdjacent = Math.min(minAdjacent, getHeight(x, y + 1));
-				//Math.max(Math.max(getHeight(x - 1, y), getHeight(x + 1, y)) Math.max(getHeight(x, y - 1), getHeight(x, y + 1)))
+				//get adjacent tiles
+				var nT:Int = getHeight(x, y - 1);
+				var sT:Int = getHeight(x, y + 1);
+				var eT:Int = getHeight(x + 1, y);
+				var wT:Int = getHeight(x - 1, y);
+				//find lowest adjacent tile
+				var minAdjacent = Math.min(nT, sT);
+				minAdjacent = Math.min(minAdjacent, eT);
+				minAdjacent = Math.min(minAdjacent, wT);
 				if (minAdjacent + 1 < getHeight(x, y)) {
-					heightMap[x][y]--;
+					eroded = true;
+					digTile(x, y, -1, false);
+					//move that sand to a downhill tile, prioritizing south tiles
+					var cT:Int = heightMap[x][y];
+					if (sT < cT) {
+						digTile(x, y + 1, 1, false);
+					}
+					else if (eT < cT || wT < cT) {
+						//randomly prioritize east or west
+						if (FlxRandom.chanceRoll(50)) {
+							if (eT < cT) {
+								digTile(x + 1, y, 1, false);
+							} else {
+								digTile(x - 1, y, 1, false);
+							}
+						} else {
+							if (wT < cT) {
+								digTile(x - 1, y, 1, false);
+							} else {
+								digTile(x + 1, y, 1, false);
+							}
+						}
+					} else if(nT < cT) {
+						digTile(x, y - 1, 1, false);
+					}
 				}
 			}
 		}
+		//keep eroding until we've reached stabilitiy.
+		if (eroded)
+			erode();
 	}
 	
 	function getHeight(x:Int, y:Int) {
@@ -184,9 +232,10 @@ class GameState extends FlxState
 	}
 	
 	override public function update():Void {
-		if (FlxG.keys.anyJustPressed(["ENTER", "SPACE"])) {
+		if (FlxG.keys.anyJustPressed(["ENTER", "ESCAPE"])) {
 			FlxG.switchState(new GameState());
 		}
+		
 		super.update();
 	}
 	
